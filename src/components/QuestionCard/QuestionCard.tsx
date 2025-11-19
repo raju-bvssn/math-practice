@@ -39,13 +39,16 @@ function QuestionCard({ question, onResult, questionNumber, totalQuestions }: Qu
     setIsFlipped(true);
   };
 
-  const handleResult = (gotIt: boolean) => {
+  const handleResult = (_userAcknowledgement: boolean) => {
+    // Determine if they actually got it right based on their selected answer
+    const actuallyGotItRight = selectedChoice === question.correctAnswer;
+    
     // Reset state for next question
     setSelectedChoice(null);
     setIsFlipped(false);
     
-    // Call parent callback
-    onResult(gotIt);
+    // Call parent callback with the actual result
+    onResult(actuallyGotItRight);
   };
 
   const getDifficultyColor = () => {
