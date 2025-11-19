@@ -137,27 +137,27 @@
 
 ## 14. **Persistent UX Enhancements**
 
-* [ ] Auto-save settings to localStorage
-* [ ] Dark mode toggle (optional)
-* [ ] Ability to reset progress
+* [x] Auto-save settings to localStorage
+* [ ] Dark mode toggle (optional - skipped for now)
+* [x] Ability to reset progress
 
 ---
 
 ## 15. **Accessibility & Child-Friendly UI**
 
-* [ ] Keyboard navigation for choices
-* [ ] ARIA labels for card & buttons
-* [ ] Large touch-friendly buttons
-* [ ] Color contrast compliance
+* [x] Keyboard navigation for choices (1-4 keys)
+* [x] ARIA labels for card & buttons
+* [x] Large touch-friendly buttons
+* [x] Color contrast compliance
 
 ---
 
 ## 16. **Polish & Animations (Hard)**
 
-* [ ] Smooth question transition animation
-* [ ] Sound effects (toggleable)
-* [ ] Animated success/failure feedback
-* [ ] Reduce-motion support
+* [x] Smooth question transition animation (card flip)
+* [ ] Sound effects (toggleable - skipped for now)
+* [x] Animated success/failure feedback
+* [x] Reduce-motion support
 
 ---
 

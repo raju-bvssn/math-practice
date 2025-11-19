@@ -10,6 +10,7 @@ interface UserDataContextType {
   recordMissedQuestion: (question: Question) => void;
   clearMissedQuestion: (questionId: string) => void;
   saveSettings: (settings: Settings) => void;
+  resetProgress: () => void;
 }
 
 const defaultStats: Stats = {
@@ -132,6 +133,14 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     }));
   };
 
+  const resetProgress = () => {
+    setUserData({
+      stats: defaultStats,
+      missedQuestions: {},
+      settings: userData.settings, // Keep settings
+    });
+  };
+
   return (
     <UserDataContext.Provider
       value={{
@@ -142,6 +151,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         recordMissedQuestion,
         clearMissedQuestion,
         saveSettings,
+        resetProgress,
       }}
     >
       {children}

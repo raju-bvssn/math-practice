@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Question } from '../../types';
 import './QuestionCard.css';
 
@@ -12,6 +12,25 @@ interface QuestionCardProps {
 function QuestionCard({ question, onResult, questionNumber, totalQuestions }: QuestionCardProps) {
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
   const [isFlipped, setIsFlipped] = useState(false);
+
+  // Keyboard navigation: Press 1-4 to select answers
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Only handle keyboard if card is not flipped yet
+      if (isFlipped) return;
+      
+      const key = e.key;
+      if (['1', '2', '3', '4'].includes(key)) {
+        const index = parseInt(key) - 1;
+        if (index < question.choices.length) {
+          handleChoiceClick(question.choices[index]);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [isFlipped, question.choices]);
 
   const handleChoiceClick = (choice: number) => {
     if (isFlipped) return; // Prevent selecting after flip
@@ -84,8 +103,10 @@ function QuestionCard({ question, onResult, questionNumber, totalQuestions }: Qu
                 className={`choice-button ${selectedChoice === choice ? 'selected' : ''}`}
                 onClick={() => handleChoiceClick(choice)}
                 disabled={isFlipped}
-                aria-label={`Choice ${choice}`}
+                aria-label={`Answer choice ${index + 1}: ${choice}. Press ${index + 1} on keyboard to select.`}
+                data-key={index + 1}
               >
+                <span className="key-hint">{index + 1}</span>
                 {choice}
               </button>
             ))}
