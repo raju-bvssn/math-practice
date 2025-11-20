@@ -102,8 +102,8 @@ test.describe('Full User Workflow', () => {
     await page.evaluate(() => localStorage.clear());
     await page.reload();
 
-    // Complete a practice session
-    await page.getByRole('button', { name: /Addition/ }).click();
+    // Deselect Multiplication to keep only Addition (both are selected by default)
+    await page.getByRole('button', { name: /Multiplication/ }).click();
     
     // Set session length to 3
     const sessionInput = page.getByRole('spinbutton', { name: 'Session length' });
@@ -111,8 +111,25 @@ test.describe('Full User Workflow', () => {
     
     await page.getByRole('button', { name: 'Start Practice' }).click();
 
+    // Answer all 3 questions CORRECTLY (tracking works automatically based on correctness)
     for (let i = 0; i < 3; i++) {
-      await page.locator('.choice-button').first().click();
+      // Get the question and find the correct answer
+      const qText = await page.locator('.question-text').textContent();
+      const qMatch = qText?.match(/(\d+)\s*\+\s*(\d+)\s*=/);
+      const qCorrect = qMatch ? parseInt(qMatch[1]) + parseInt(qMatch[2]) : -1;
+      
+      // Click the correct answer (use aria-label to get actual value)
+      const choices = await page.locator('.choice-button').all();
+      for (const choice of choices) {
+        const ariaLabel = await choice.getAttribute('aria-label');
+        const choiceMatch = ariaLabel?.match(/Answer choice \d+: (\d+)\./);
+        const btnValue = choiceMatch ? parseInt(choiceMatch[1]) : -1;
+        if (btnValue === qCorrect && btnValue !== -1) {
+          await choice.click();
+          break;
+        }
+      }
+      
       await page.waitForTimeout(700);
       await page.getByRole('button', { name: /I got it/i }).click();
       if (i < 2) await page.waitForTimeout(500);
@@ -123,7 +140,7 @@ test.describe('Full User Workflow', () => {
     // Navigate to stats
     await page.getByRole('button', { name: /View All Stats/i }).click();
     
-    // Stats should show 3 questions
+    // Stats should show 3 questions attempted
     await expect(page.getByText('Questions')).toBeVisible();
     
     // Reload the page

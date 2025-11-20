@@ -38,6 +38,11 @@ function QuestionCard({ question, onResult, questionNumber, totalQuestions }: Qu
     
     setSelectedChoice(choice);
     setIsFlipped(true);
+    
+    // Trigger confetti immediately if they selected the correct answer
+    if (choice === question.correctAnswer) {
+      triggerConfetti();
+    }
   };
 
   const triggerConfetti = () => {
@@ -88,14 +93,9 @@ function QuestionCard({ question, onResult, questionNumber, totalQuestions }: Qu
     });
   };
 
-  const handleResult = (userClickedGotIt: boolean) => {
+  const handleResult = (_userAcknowledgement: boolean) => {
     // Determine if they actually got it right based on their selected answer
     const actuallyGotItRight = selectedChoice === question.correctAnswer;
-    
-    // Trigger confetti if they clicked "I got it" and actually got it right
-    if (userClickedGotIt && actuallyGotItRight) {
-      triggerConfetti();
-    }
     
     // Reset state for next question
     setSelectedChoice(null);
