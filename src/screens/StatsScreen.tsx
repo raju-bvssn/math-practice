@@ -4,7 +4,7 @@ import { Operation } from '../types';
 import './StatsScreen.css';
 
 function StatsScreen() {
-  const { stats, missedQuestions } = useUserData();
+  const { stats, missedQuestions, resetProgress } = useUserData();
   const navigate = useNavigate();
 
   const calculateAccuracy = (correct: number, attempted: number): number => {
@@ -34,6 +34,12 @@ function StatsScreen() {
 
   const missedCount = Object.keys(missedQuestions).length;
   const recentHistory = stats.history.slice(-10).reverse();
+
+  const handleResetProgress = () => {
+    if (window.confirm('Are you sure you want to reset all your progress? This cannot be undone!')) {
+      resetProgress();
+    }
+  };
 
   return (
     <div className="stats-screen">
@@ -172,6 +178,13 @@ function StatsScreen() {
           onClick={() => navigate('/practice')}
         >
           🚀 Start New Session
+        </button>
+        <button 
+          className="action-btn danger"
+          onClick={handleResetProgress}
+          aria-label="Reset all progress"
+        >
+          🔄 Reset Progress
         </button>
       </div>
     </div>

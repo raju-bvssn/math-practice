@@ -1,37 +1,70 @@
+/**
+ * HomeScreen Component
+ * 
+ * Landing page where users configure their practice session settings
+ * Features:
+ * - Multi-select operations (addition, subtraction, multiplication, division)
+ * - Difficulty level selection (easy, medium, hard)
+ * - Session length configuration (including continuous mode)
+ * - Settings persistence across sessions
+ * - Input validation before starting practice
+ */
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUserData } from '../contexts/UserDataContext';
 import { Operation, Difficulty } from '../types';
+import { MIN_SESSION_LENGTH, MAX_SESSION_LENGTH } from '../constants';
 import './HomeScreen.css';
 
 function HomeScreen() {
   const { settings, saveSettings } = useUserData();
   const navigate = useNavigate();
   
+  // Initialize local state from persisted user settings
   const [selectedOperations, setSelectedOperations] = useState<Operation[]>(settings.operations);
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(settings.difficulty);
   const [sessionLength, setSessionLength] = useState(settings.sessionLength);
 
+  /**
+   * Toggles an operation in the selected operations list
+   * Allows multi-select: users can practice multiple operation types in one session
+   * 
+   * @param operation - The operation to toggle (add/remove)
+   */
   const toggleOperation = (operation: Operation) => {
     setSelectedOperations((prev) =>
       prev.includes(operation)
-        ? prev.filter((op) => op !== operation)
-        : [...prev, operation]
+        ? prev.filter((op) => op !== operation) // Remove if already selected
+        : [...prev, operation] // Add if not selected
     );
   };
 
+  /**
+   * Validates settings and starts a practice session
+   * 
+   * Validation:
+   * - At least one operation must be selected
+   * 
+   * On success:
+   * - Saves settings to persistent storage
+   * - Navigates to practice screen
+   */
   const handleStartPractice = () => {
+    // Validation: Ensure at least one operation is selected
     if (selectedOperations.length === 0) {
       alert('Please select at least one operation!');
       return;
     }
 
+    // Persist settings for future sessions
     saveSettings({
       difficulty: selectedDifficulty,
       operations: selectedOperations,
       sessionLength,
     });
 
+    // Navigate to practice screen
     navigate('/practice');
   };
 
@@ -80,10 +113,10 @@ function HomeScreen() {
         <div className="session-length">
           <input
             type="number"
-            min="0"
-            max="50"
+            min={MIN_SESSION_LENGTH}
+            max={MAX_SESSION_LENGTH}
             value={sessionLength}
-            onChange={(e) => setSessionLength(Math.max(0, parseInt(e.target.value) || 0))}
+            onChange={(e) => setSessionLength(Math.max(MIN_SESSION_LENGTH, parseInt(e.target.value) || MIN_SESSION_LENGTH))}
             aria-label="Session length"
           />
           <span className="hint">(0 = continuous mode)</span>

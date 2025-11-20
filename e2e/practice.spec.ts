@@ -75,8 +75,23 @@ test.describe('Practice Screen', () => {
   });
 
   test('should track session progress', async ({ page }) => {
-    // Answer first question correctly
-    await page.locator('.choice-button').first().click();
+    // Get the question text and calculate correct answer
+    const questionText = await page.locator('.question-text').textContent();
+    const match = questionText?.match(/(\d+)\s*\+\s*(\d+)\s*=/);
+    const correctAnswer = match ? parseInt(match[1]) + parseInt(match[2]) : -1;
+    
+    // Find and click the CORRECT answer (use aria-label to get actual value)
+    const allChoices = await page.locator('.choice-button').all();
+    for (const choice of allChoices) {
+      const ariaLabel = await choice.getAttribute('aria-label');
+      const choiceMatch = ariaLabel?.match(/Answer choice \d+: (\d+)\./);
+      const choiceValue = choiceMatch ? parseInt(choiceMatch[1]) : -1;
+      if (choiceValue === correctAnswer && choiceValue !== -1) {
+        await choice.click();
+        break;
+      }
+    }
+    
     await page.waitForTimeout(700);
     await page.getByRole('button', { name: /I got it/i }).click();
     await page.waitForTimeout(500);

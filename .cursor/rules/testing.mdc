@@ -1,0 +1,6 @@
+---
+alwaysApply: true
+---
+
+Rule 1: After making changes to the codebase, run all tests to ensure they pass.
+Rule 2: After changes, proactively ask the user whether they'd like to create additional tests to cover the new functionality.

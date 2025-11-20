@@ -1,5 +1,18 @@
-import { useState } from 'react';
+/**
+ * QuestionCard Component
+ * 
+ * Displays a math question with multiple choice answers
+ * Features:
+ * - Card flip animation showing results
+ * - Keyboard navigation (keys 1-4)
+ * - Confetti celebration for correct answers
+ * - Accessibility support (ARIA labels, keyboard hints)
+ */
+
+import { useState, useEffect } from 'react';
 import { Question } from '../../types';
+import { triggerCelebrationConfetti } from '../../utils/confetti';
+import { ANSWER_KEYS, DIFFICULTY_COLORS, OPERATION_ICONS } from '../../constants';
 import './QuestionCard.css';
 
 interface QuestionCardProps {
@@ -13,38 +26,87 @@ function QuestionCard({ question, onResult, questionNumber, totalQuestions }: Qu
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
   const [isFlipped, setIsFlipped] = useState(false);
 
+  /**
+   * Keyboard Navigation Effect
+   * Allows users to select answers using number keys (1-4)
+   * Enhances accessibility and provides faster interaction
+   */
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Only handle keyboard input if card hasn't been flipped yet
+      if (isFlipped) return;
+      
+      const key = e.key;
+      // Check if pressed key is one of the answer keys
+      if (ANSWER_KEYS.includes(key)) {
+        const index = parseInt(key) - 1;
+        // Ensure the index is valid for the current number of choices
+        if (index < question.choices.length) {
+          handleChoiceClick(question.choices[index]);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    // Cleanup event listener on unmount or when dependencies change
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [isFlipped, question.choices]);
+
+  /**
+   * Handles user clicking on an answer choice
+   * Flips the card to show result and triggers celebration if correct
+   * 
+   * @param choice - The numeric value of the selected choice
+   */
   const handleChoiceClick = (choice: number) => {
-    if (isFlipped) return; // Prevent selecting after flip
+    // Prevent selecting another answer after card has been flipped
+    if (isFlipped) return;
     
     setSelectedChoice(choice);
     setIsFlipped(true);
+    
+    // Celebrate immediately if answer is correct!
+    if (choice === question.correctAnswer) {
+      triggerCelebrationConfetti();
+    }
   };
 
-  const handleResult = (gotIt: boolean) => {
-    // Reset state for next question
+  /**
+   * Handles user acknowledgement of the result
+   * Determines actual correctness and notifies parent component
+   * 
+   * @param _userAcknowledgement - User's self-assessment (not used for actual tracking)
+   */
+  const handleResult = (_userAcknowledgement: boolean) => {
+    // Determine correctness based on actual selected answer, not user's claim
+    const actuallyGotItRight = selectedChoice === question.correctAnswer;
+    
+    // Reset component state for next question
     setSelectedChoice(null);
     setIsFlipped(false);
     
-    // Call parent callback
-    onResult(gotIt);
+    // Notify parent component with actual result
+    onResult(actuallyGotItRight);
   };
 
-  const getDifficultyColor = () => {
-    switch (question.difficulty) {
-      case 'easy': return '#4caf50';
-      case 'medium': return '#ff9800';
-      case 'hard': return '#f44336';
-      default: return '#999';
-    }
+  /**
+   * Retrieves the color associated with the question's difficulty level
+   * Uses centralized theme constants for consistency
+   * 
+   * @returns Hex color code for the difficulty
+   */
+  const getDifficultyColor = (): string => {
+    return DIFFICULTY_COLORS[question.difficulty] || DIFFICULTY_COLORS.default;
   };
 
-  const getOperationIcon = () => {
-    switch (question.operation) {
-      case 'addition': return '➕';
-      case 'subtraction': return '➖';
-      case 'multiplication': return '✖️';
-      case 'division': return '➗';
-    }
+  /**
+   * Retrieves the icon emoji for the question's operation
+   * Uses centralized constants for consistency
+   * 
+   * @returns Unicode emoji representing the operation
+   */
+  const getOperationIcon = (): string => {
+    return OPERATION_ICONS[question.operation];
   };
 
   return (
@@ -84,8 +146,10 @@ function QuestionCard({ question, onResult, questionNumber, totalQuestions }: Qu
                 className={`choice-button ${selectedChoice === choice ? 'selected' : ''}`}
                 onClick={() => handleChoiceClick(choice)}
                 disabled={isFlipped}
-                aria-label={`Choice ${choice}`}
+                aria-label={`Answer choice ${index + 1}: ${choice}. Press ${index + 1} on keyboard to select.`}
+                data-key={index + 1}
               >
+                <span className="key-hint">{index + 1}</span>
                 {choice}
               </button>
             ))}
