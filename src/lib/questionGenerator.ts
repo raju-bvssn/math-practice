@@ -1,39 +1,47 @@
+/**
+ * Question Generator Module
+ * 
+ * Generates math questions with appropriate difficulty levels and smart distractors.
+ * Supports addition, subtraction, multiplication, and division operations.
+ */
+
 import { Question, Operation, Difficulty } from '../types';
 import { v4 as uuidv4 } from 'uuid';
+import {
+  OPERAND_RANGES,
+  HARD_MULTIPLICATION_LARGE_FACTOR,
+  HARD_MULTIPLICATION_SMALL_FACTOR,
+  NUM_DISTRACTORS,
+  DISTRACTOR_OFFSETS,
+  MIN_DISTRACTOR_VALUE,
+  FALLBACK_DISTRACTOR_OFFSET_RANGE,
+  OPERATION_SYMBOLS,
+} from '../constants';
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
 
 /**
- * Get random integer between min and max (inclusive)
+ * Generates a random integer between min and max (inclusive)
+ * @param min - Minimum value (inclusive)
+ * @param max - Maximum value (inclusive)
+ * @returns Random integer in the specified range
  */
 function randomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 /**
- * Get operand ranges based on difficulty level and operation
+ * Retrieves operand ranges for a given operation and difficulty
+ * Uses centralized constants for consistency
+ * 
+ * @param operation - The math operation type
+ * @param difficulty - The difficulty level
+ * @returns Object containing min and max operand values
  */
 function getOperandRanges(operation: Operation, difficulty: Difficulty): { min: number; max: number } {
-  switch (operation) {
-    case 'addition':
-    case 'subtraction':
-      if (difficulty === 'easy') return { min: 0, max: 20 };
-      if (difficulty === 'medium') return { min: 0, max: 100 };
-      return { min: 0, max: 1000 }; // hard
-    
-    case 'multiplication':
-      if (difficulty === 'easy') return { min: 0, max: 5 };
-      if (difficulty === 'medium') return { min: 0, max: 12 };
-      // hard: one factor 0-99, other 0-12 (handled separately)
-      return { min: 0, max: 12 };
-    
-    case 'division':
-      // For division, we'll handle this differently in the generation logic
-      if (difficulty === 'easy') return { min: 1, max: 5 };
-      if (difficulty === 'medium') return { min: 1, max: 12 };
-      return { min: 1, max: 12 }; // hard
-    
-    default:
-      return { min: 0, max: 10 };
-  }
+  return OPERAND_RANGES[operation][difficulty];
 }
 
 /**
@@ -58,20 +66,30 @@ function generateSubtraction(difficulty: Difficulty): { a: number; b: number; an
 }
 
 /**
- * Generate multiplication question
+ * Generates a multiplication question appropriate for the difficulty level
+ * 
+ * Hard mode uses a special strategy: one large factor (10-99) and one small factor (0-12)
+ * to create more challenging problems while keeping them manageable
+ * 
+ * @param difficulty - The difficulty level
+ * @returns Object with operands (a, b) and the correct answer
  */
 function generateMultiplication(difficulty: Difficulty): { a: number; b: number; answer: number } {
   const { min, max } = getOperandRanges('multiplication', difficulty);
   
   if (difficulty === 'hard') {
-    // Hard: one factor 0-99, other 0-12
-    const largeNum = randomInt(10, 99);
-    const smallNum = randomInt(0, 12);
+    // Hard mode: Mix one large factor with one small factor for challenging problems
+    const largeNum = randomInt(HARD_MULTIPLICATION_LARGE_FACTOR.min, HARD_MULTIPLICATION_LARGE_FACTOR.max);
+    const smallNum = randomInt(HARD_MULTIPLICATION_SMALL_FACTOR.min, HARD_MULTIPLICATION_SMALL_FACTOR.max);
+    
+    // Randomly decide which operand is the large number
     const a = Math.random() > 0.5 ? largeNum : smallNum;
     const b = a === largeNum ? smallNum : largeNum;
+    
     return { a, b, answer: a * b };
   }
   
+  // Easy and medium: Both factors from the same range
   const a = randomInt(min, max);
   const b = randomInt(min, max);
   return { a, b, answer: a * b };
@@ -103,20 +121,175 @@ function generateDivision(difficulty: Difficulty): { a: number; b: number; answe
   return { a: dividend, b: divisor, answer: quotient };
 }
 
+// ============================================================================
+// DISPLAY HELPERS
+// ============================================================================
+
 /**
- * Get operation symbol for display
+ * Retrieves the display symbol for a given operation
+ * Uses centralized constants for consistency across the app
+ * 
+ * @param operation - The math operation type
+ * @returns Unicode symbol for the operation
  */
 function getOperationSymbol(operation: Operation): string {
+  return OPERATION_SYMBOLS[operation];
+}
+
+// ============================================================================
+// DISTRACTOR GENERATION
+// ============================================================================
+
+/**
+ * Adds operation-specific common mistakes to the distractor pool
+ * 
+ * These distractors are based on typical student errors:
+ * - Multiplication: Off-by-one factor errors
+ * - Division: Off-by-one quotient errors
+ * - Addition: Near misses and wrong operation (multiply instead)
+ * - Subtraction: Reversed operands and near misses
+ * 
+ * @param distractors - Set to add distractors to
+ * @param operation - The math operation
+ * @param correctAnswer - The correct answer to the question
+ * @param a - First operand
+ * @param b - Second operand
+ */
+function addOperationSpecificDistractors(
+  distractors: Set<number>,
+  operation: Operation,
+  correctAnswer: number,
+  a: number,
+  b: number
+): void {
   switch (operation) {
-    case 'addition': return '+';
-    case 'subtraction': return '−';
-    case 'multiplication': return '×';
-    case 'division': return '÷';
+    case 'multiplication':
+      // Off-by-one factor mistakes (e.g., 3×4 vs 2×4 or 3×5)
+      if (a > 0) distractors.add((a - 1) * b);
+      if (b > 0) distractors.add(a * (b - 1));
+      distractors.add((a + 1) * b);
+      distractors.add(a * (b + 1));
+      break;
+
+    case 'division':
+      // Common division mistakes: off-by-one or off-by-two
+      distractors.add(correctAnswer - 1);
+      distractors.add(correctAnswer + 1);
+      if (correctAnswer > 1) distractors.add(correctAnswer - 2);
+      distractors.add(correctAnswer + 2);
+      break;
+
+    case 'addition':
+      // Near misses and the common mistake of multiplying instead
+      distractors.add(a + b - 1);
+      distractors.add(a + b + 1);
+      distractors.add(a * b); // Common error: using wrong operation
+      break;
+
+    case 'subtraction':
+      // Reversed operands and near misses
+      distractors.add(b - a); // Classic mistake: reversing the order
+      if (a - b - 1 >= MIN_DISTRACTOR_VALUE) {
+        distractors.add(a - b - 1);
+      }
+      distractors.add(a - b + 1);
+      break;
   }
 }
 
 /**
- * Generate smart distractors (wrong answers) for multiple choice
+ * Adds offset-based distractors around the correct answer
+ * Offsets are scaled based on difficulty level
+ * 
+ * @param distractors - Set to add distractors to
+ * @param correctAnswer - The correct answer
+ * @param difficulty - The difficulty level
+ */
+function addOffsetDistractors(
+  distractors: Set<number>,
+  correctAnswer: number,
+  difficulty: Difficulty
+): void {
+  const offsets = DISTRACTOR_OFFSETS[difficulty];
+  
+  for (const offset of offsets) {
+    const distractor = correctAnswer + offset;
+    // Only include non-negative distractors (no negative numbers for kids)
+    if (distractor >= MIN_DISTRACTOR_VALUE) {
+      distractors.add(distractor);
+    }
+  }
+}
+
+/**
+ * Selects a random subset of distractors from the pool
+ * 
+ * @param distractorPool - Array of possible distractors
+ * @param count - Number of distractors to select
+ * @returns Array of selected distractors
+ */
+function selectRandomDistractors(distractorPool: number[], count: number): number[] {
+  const selected: number[] = [];
+  const pool = [...distractorPool]; // Create a copy to avoid mutating input
+  
+  while (selected.length < count && pool.length > 0) {
+    const index = randomInt(0, pool.length - 1);
+    selected.push(pool[index]);
+    pool.splice(index, 1); // Remove selected item from pool
+  }
+  
+  return selected;
+}
+
+/**
+ * Generates additional random distractors if needed
+ * Used as a fallback when we don't have enough unique distractors
+ * 
+ * @param currentDistractors - Already selected distractors
+ * @param correctAnswer - The correct answer (to avoid duplicates)
+ * @param targetCount - Total number of distractors needed
+ * @returns Updated array with additional distractors
+ */
+function fillRemainingDistractors(
+  currentDistractors: number[],
+  correctAnswer: number,
+  targetCount: number
+): number[] {
+  const result = [...currentDistractors];
+  const { min, max } = FALLBACK_DISTRACTOR_OFFSET_RANGE;
+  
+  // Generate random offsets until we have enough unique distractors
+  while (result.length < targetCount) {
+    const offset = randomInt(min, max) * (Math.random() > 0.5 ? 1 : -1);
+    const distractor = correctAnswer + offset;
+    
+    // Ensure distractor is valid and unique
+    if (
+      distractor >= MIN_DISTRACTOR_VALUE &&
+      distractor !== correctAnswer &&
+      !result.includes(distractor)
+    ) {
+      result.push(distractor);
+    }
+  }
+  
+  return result;
+}
+
+/**
+ * Generates smart distractors (wrong answers) for multiple choice questions
+ * 
+ * Strategy:
+ * 1. Add operation-specific common mistakes
+ * 2. Add offset-based distractors scaled to difficulty
+ * 3. Randomly select from the pool
+ * 4. Fill any remaining slots with random distractors
+ * 
+ * @param correctAnswer - The correct answer to the question
+ * @param operation - The math operation type
+ * @param difficulty - The difficulty level
+ * @param operands - The operands used in the question [a, b]
+ * @returns Array of distractor values
  */
 function generateDistractors(
   correctAnswer: number,
@@ -124,69 +297,29 @@ function generateDistractors(
   difficulty: Difficulty,
   operands: [number, number]
 ): number[] {
-  const distractors = new Set<number>();
+  const distractorSet = new Set<number>();
   const [a, b] = operands;
   
-  // Define offset ranges based on difficulty
-  const offsets = difficulty === 'easy' 
-    ? [-2, -1, 1, 2, 3] 
-    : difficulty === 'medium'
-    ? [-10, -5, -2, -1, 1, 2, 5, 10]
-    : [-20, -10, -5, -1, 1, 5, 10, 20];
+  // Step 1: Add operation-specific mistakes (e.g., off-by-one errors)
+  addOperationSpecificDistractors(distractorSet, operation, correctAnswer, a, b);
   
-  // Add common mistakes based on operation
-  if (operation === 'multiplication') {
-    // Off-by-one factor mistakes
-    if (a > 0) distractors.add((a - 1) * b);
-    if (b > 0) distractors.add(a * (b - 1));
-    distractors.add((a + 1) * b);
-    distractors.add(a * (b + 1));
-  } else if (operation === 'division') {
-    // Common division mistakes
-    distractors.add(correctAnswer - 1);
-    distractors.add(correctAnswer + 1);
-    if (correctAnswer > 1) distractors.add(correctAnswer - 2);
-    distractors.add(correctAnswer + 2);
-  } else if (operation === 'addition') {
-    // Near misses
-    distractors.add(a + b - 1);
-    distractors.add(a + b + 1);
-    distractors.add(a * b); // Common mistake: multiply instead
-  } else if (operation === 'subtraction') {
-    // Near misses and reversed operation
-    distractors.add(b - a); // reversed
-    if (a - b - 1 >= 0) distractors.add(a - b - 1);
-    distractors.add(a - b + 1);
-  }
+  // Step 2: Add offset-based distractors (scaled by difficulty)
+  addOffsetDistractors(distractorSet, correctAnswer, difficulty);
   
-  // Add offset-based distractors
-  for (const offset of offsets) {
-    const distractor = correctAnswer + offset;
-    if (distractor >= 0) { // Avoid negative distractors for younger kids
-      distractors.add(distractor);
-    }
-  }
+  // Step 3: Remove the correct answer if it was accidentally added
+  distractorSet.delete(correctAnswer);
   
-  // Remove the correct answer if it was added
-  distractors.delete(correctAnswer);
+  // Step 4: Convert to array and randomly select the needed number
+  const distractorPool = Array.from(distractorSet);
+  let selectedDistractors = selectRandomDistractors(distractorPool, NUM_DISTRACTORS);
   
-  // Convert to array and select 3 distractors
-  const distractorArray = Array.from(distractors);
-  const selectedDistractors: number[] = [];
-  
-  while (selectedDistractors.length < 3 && distractorArray.length > 0) {
-    const index = randomInt(0, distractorArray.length - 1);
-    selectedDistractors.push(distractorArray[index]);
-    distractorArray.splice(index, 1);
-  }
-  
-  // If we don't have enough unique distractors, generate more random ones
-  while (selectedDistractors.length < 3) {
-    const offset = randomInt(1, 5) * (Math.random() > 0.5 ? 1 : -1);
-    const distractor = correctAnswer + offset;
-    if (distractor >= 0 && distractor !== correctAnswer && !selectedDistractors.includes(distractor)) {
-      selectedDistractors.push(distractor);
-    }
+  // Step 5: Fill any remaining slots with random distractors
+  if (selectedDistractors.length < NUM_DISTRACTORS) {
+    selectedDistractors = fillRemainingDistractors(
+      selectedDistractors,
+      correctAnswer,
+      NUM_DISTRACTORS
+    );
   }
   
   return selectedDistractors;

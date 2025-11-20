@@ -1,6 +1,18 @@
+/**
+ * QuestionCard Component
+ * 
+ * Displays a math question with multiple choice answers
+ * Features:
+ * - Card flip animation showing results
+ * - Keyboard navigation (keys 1-4)
+ * - Confetti celebration for correct answers
+ * - Accessibility support (ARIA labels, keyboard hints)
+ */
+
 import { useState, useEffect } from 'react';
 import { Question } from '../../types';
-import confetti from 'canvas-confetti';
+import { triggerCelebrationConfetti } from '../../utils/confetti';
+import { ANSWER_KEYS, DIFFICULTY_COLORS, OPERATION_ICONS } from '../../constants';
 import './QuestionCard.css';
 
 interface QuestionCardProps {
@@ -14,15 +26,21 @@ function QuestionCard({ question, onResult, questionNumber, totalQuestions }: Qu
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
   const [isFlipped, setIsFlipped] = useState(false);
 
-  // Keyboard navigation: Press 1-4 to select answers
+  /**
+   * Keyboard Navigation Effect
+   * Allows users to select answers using number keys (1-4)
+   * Enhances accessibility and provides faster interaction
+   */
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      // Only handle keyboard if card is not flipped yet
+      // Only handle keyboard input if card hasn't been flipped yet
       if (isFlipped) return;
       
       const key = e.key;
-      if (['1', '2', '3', '4'].includes(key)) {
+      // Check if pressed key is one of the answer keys
+      if (ANSWER_KEYS.includes(key)) {
         const index = parseInt(key) - 1;
+        // Ensure the index is valid for the current number of choices
         if (index < question.choices.length) {
           handleChoiceClick(question.choices[index]);
         }
@@ -30,97 +48,65 @@ function QuestionCard({ question, onResult, questionNumber, totalQuestions }: Qu
     };
 
     window.addEventListener('keydown', handleKeyPress);
+    // Cleanup event listener on unmount or when dependencies change
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [isFlipped, question.choices]);
 
+  /**
+   * Handles user clicking on an answer choice
+   * Flips the card to show result and triggers celebration if correct
+   * 
+   * @param choice - The numeric value of the selected choice
+   */
   const handleChoiceClick = (choice: number) => {
-    if (isFlipped) return; // Prevent selecting after flip
+    // Prevent selecting another answer after card has been flipped
+    if (isFlipped) return;
     
     setSelectedChoice(choice);
     setIsFlipped(true);
     
-    // Trigger confetti immediately if they selected the correct answer
+    // Celebrate immediately if answer is correct!
     if (choice === question.correctAnswer) {
-      triggerConfetti();
+      triggerCelebrationConfetti();
     }
   };
 
-  const triggerConfetti = () => {
-    // Check if user prefers reduced motion
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) return;
-
-    // Fire confetti from multiple angles for a celebration effect
-    const count = 200;
-    const defaults = {
-      origin: { y: 0.7 },
-      zIndex: 9999,
-    };
-
-    function fire(particleRatio: number, opts: confetti.Options) {
-      confetti({
-        ...defaults,
-        ...opts,
-        particleCount: Math.floor(count * particleRatio),
-      });
-    }
-
-    fire(0.25, {
-      spread: 26,
-      startVelocity: 55,
-    });
-
-    fire(0.2, {
-      spread: 60,
-    });
-
-    fire(0.35, {
-      spread: 100,
-      decay: 0.91,
-      scalar: 0.8,
-    });
-
-    fire(0.1, {
-      spread: 120,
-      startVelocity: 25,
-      decay: 0.92,
-      scalar: 1.2,
-    });
-
-    fire(0.1, {
-      spread: 120,
-      startVelocity: 45,
-    });
-  };
-
+  /**
+   * Handles user acknowledgement of the result
+   * Determines actual correctness and notifies parent component
+   * 
+   * @param _userAcknowledgement - User's self-assessment (not used for actual tracking)
+   */
   const handleResult = (_userAcknowledgement: boolean) => {
-    // Determine if they actually got it right based on their selected answer
+    // Determine correctness based on actual selected answer, not user's claim
     const actuallyGotItRight = selectedChoice === question.correctAnswer;
     
-    // Reset state for next question
+    // Reset component state for next question
     setSelectedChoice(null);
     setIsFlipped(false);
     
-    // Call parent callback with the actual result
+    // Notify parent component with actual result
     onResult(actuallyGotItRight);
   };
 
-  const getDifficultyColor = () => {
-    switch (question.difficulty) {
-      case 'easy': return '#4caf50';
-      case 'medium': return '#ff9800';
-      case 'hard': return '#f44336';
-      default: return '#999';
-    }
+  /**
+   * Retrieves the color associated with the question's difficulty level
+   * Uses centralized theme constants for consistency
+   * 
+   * @returns Hex color code for the difficulty
+   */
+  const getDifficultyColor = (): string => {
+    return DIFFICULTY_COLORS[question.difficulty] || DIFFICULTY_COLORS.default;
   };
 
-  const getOperationIcon = () => {
-    switch (question.operation) {
-      case 'addition': return '➕';
-      case 'subtraction': return '➖';
-      case 'multiplication': return '✖️';
-      case 'division': return '➗';
-    }
+  /**
+   * Retrieves the icon emoji for the question's operation
+   * Uses centralized constants for consistency
+   * 
+   * @returns Unicode emoji representing the operation
+   */
+  const getOperationIcon = (): string => {
+    return OPERATION_ICONS[question.operation];
   };
 
   return (

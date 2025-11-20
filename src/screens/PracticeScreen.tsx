@@ -1,9 +1,22 @@
+/**
+ * PracticeScreen Component
+ * 
+ * Manages a practice session where users answer math questions
+ * Features:
+ * - Fixed-length or continuous mode sessions
+ * - Real-time progress tracking
+ * - Session completion summary with statistics
+ * - Automatic recording of attempts and missed questions
+ */
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUserData } from '../contexts/UserDataContext';
 import { generateQuestion } from '../lib/questionGenerator';
 import QuestionCard from '../components/QuestionCard/QuestionCard';
 import { Question } from '../types';
+import { CARD_ANIMATION_DELAY_MS } from '../constants';
+import { calculateAccuracy, updateSessionStats, createInitialSessionStats } from '../utils/stats';
 import './PracticeScreen.css';
 
 function PracticeScreen() {
@@ -12,30 +25,44 @@ function PracticeScreen() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [sessionComplete, setSessionComplete] = useState(false);
-  const [sessionStats, setSessionStats] = useState({ correct: 0, total: 0 });
+  const [sessionStats, setSessionStats] = useState(createInitialSessionStats());
 
-  // Initialize session on mount
+  /**
+   * Session Initialization Effect
+   * Runs once on component mount to set up the practice session
+   * - Validates that operations are selected
+   * - Generates initial question queue
+   */
   useEffect(() => {
+    // Redirect to home if no operations are selected
     if (settings.operations.length === 0) {
-      // No operations selected, redirect to home
       navigate('/');
       return;
     }
 
-    // Generate initial questions
+    // Generate initial set of questions for the session
     const initialQuestions = generateQuestionQueue();
     setQuestions(initialQuestions);
-  }, []); // Empty dependency to run once on mount
+  }, []); // Empty dependency array = run once on mount
 
+  /**
+   * Generates a queue of questions for the practice session
+   * 
+   * - For fixed-length sessions: generates all questions upfront
+   * - For continuous mode: generates one question at a time
+   * - Questions are randomized from selected operations
+   * 
+   * @returns Array of Question objects
+   */
   const generateQuestionQueue = (): Question[] => {
     const { operations, difficulty, sessionLength } = settings;
     const queue: Question[] = [];
     
-    // If continuous mode (sessionLength = 0), start with 1 question
+    // Continuous mode (sessionLength = 0) starts with just 1 question
     const numQuestions = sessionLength === 0 ? 1 : sessionLength;
 
     for (let i = 0; i < numQuestions; i++) {
-      // Randomly select an operation from the chosen operations
+      // Randomly select an operation from user's chosen operations
       const randomOperation = operations[Math.floor(Math.random() * operations.length)];
       const question = generateQuestion(randomOperation, difficulty);
       queue.push(question);
@@ -44,37 +71,44 @@ function PracticeScreen() {
     return queue;
   };
 
+  /**
+   * Handles the result of a question attempt
+   * 
+   * Workflow:
+   * 1. Records attempt in global context (updates stats and missed questions)
+   * 2. Updates local session statistics
+   * 3. Waits for card animation to complete
+   * 4. Advances to next question or completes session
+   * 
+   * @param gotIt - Whether the user answered correctly
+   */
   const handleResult = (gotIt: boolean) => {
     const currentQuestion = questions[currentQuestionIndex];
     
-    // Record the attempt in the context
+    // Record the attempt globally (updates overall stats and missed questions)
     recordAttempt(currentQuestion, gotIt);
 
-    // Update session stats
-    setSessionStats(prev => ({
-      correct: gotIt ? prev.correct + 1 : prev.correct,
-      total: prev.total + 1,
-    }));
+    // Update session-specific statistics
+    setSessionStats(prev => updateSessionStats(prev, gotIt));
 
-    // Add a small delay before moving to next question to allow card animation to complete
+    // Delay before transitioning to allow card flip animation to complete smoothly
     setTimeout(() => {
-      // Check if session should continue
       if (settings.sessionLength === 0) {
-        // Continuous mode: generate another question
+        // CONTINUOUS MODE: Generate and add the next question
         const nextQuestion = generateQuestionQueue()[0];
         setQuestions(prev => [...prev, nextQuestion]);
         setCurrentQuestionIndex(prev => prev + 1);
       } else {
-        // Fixed session mode
+        // FIXED SESSION MODE: Check if we've reached the end
         if (currentQuestionIndex + 1 >= questions.length) {
-          // Session complete
+          // All questions answered - show completion screen
           setSessionComplete(true);
         } else {
-          // Move to next question
+          // More questions remain - advance to next
           setCurrentQuestionIndex(prev => prev + 1);
         }
       }
-    }, 300); // Wait for any exit animations
+    }, CARD_ANIMATION_DELAY_MS);
   };
 
   const handleEndSession = () => {
@@ -87,7 +121,7 @@ function PracticeScreen() {
     setQuestions(newQuestions);
     setCurrentQuestionIndex(0);
     setSessionComplete(false);
-    setSessionStats({ correct: 0, total: 0 });
+    setSessionStats(createInitialSessionStats());
   };
 
   // Show loading if no questions yet
@@ -101,9 +135,7 @@ function PracticeScreen() {
 
   // Show session complete screen
   if (sessionComplete) {
-    const accuracy = sessionStats.total > 0 
-      ? Math.round((sessionStats.correct / sessionStats.total) * 100) 
-      : 0;
+    const accuracy = calculateAccuracy(sessionStats.correct, sessionStats.total);
 
     return (
       <div className="practice-screen session-complete">
