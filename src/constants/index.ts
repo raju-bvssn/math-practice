@@ -114,6 +114,31 @@ export const CONFETTI_BURSTS = [
 ] as const;
 
 // ============================================================================
+// SOUND EFFECT CONSTANTS
+// ============================================================================
+
+/** Default state for sound effects (can be toggled by user) */
+export const SOUND_ENABLED_DEFAULT = true;
+
+/** Volume level for sound effects (0.0 to 1.0) */
+export const SOUND_VOLUME = 0.3;
+
+/** Duration of each musical note in milliseconds */
+export const SOUND_NOTE_DURATION_MS = 150;
+
+/**
+ * Musical notes for success sound (ascending major scale)
+ * Frequencies in Hz: C5, E5, G5, C6 (C major chord arpeggio)
+ * Creates a cheerful, uplifting sound
+ */
+export const SOUND_SUCCESS_NOTES = [
+  523.25, // C5
+  659.25, // E5
+  783.99, // G5
+  1046.50, // C6
+] as const;
+
+// ============================================================================
 // UI THEME CONSTANTS
 // ============================================================================
 
