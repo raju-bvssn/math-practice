@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Question } from '../../types';
+import confetti from 'canvas-confetti';
 import './QuestionCard.css';
 
 interface QuestionCardProps {
@@ -39,9 +40,62 @@ function QuestionCard({ question, onResult, questionNumber, totalQuestions }: Qu
     setIsFlipped(true);
   };
 
-  const handleResult = (_userAcknowledgement: boolean) => {
+  const triggerConfetti = () => {
+    // Check if user prefers reduced motion
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    // Fire confetti from multiple angles for a celebration effect
+    const count = 200;
+    const defaults = {
+      origin: { y: 0.7 },
+      zIndex: 9999,
+    };
+
+    function fire(particleRatio: number, opts: confetti.Options) {
+      confetti({
+        ...defaults,
+        ...opts,
+        particleCount: Math.floor(count * particleRatio),
+      });
+    }
+
+    fire(0.25, {
+      spread: 26,
+      startVelocity: 55,
+    });
+
+    fire(0.2, {
+      spread: 60,
+    });
+
+    fire(0.35, {
+      spread: 100,
+      decay: 0.91,
+      scalar: 0.8,
+    });
+
+    fire(0.1, {
+      spread: 120,
+      startVelocity: 25,
+      decay: 0.92,
+      scalar: 1.2,
+    });
+
+    fire(0.1, {
+      spread: 120,
+      startVelocity: 45,
+    });
+  };
+
+  const handleResult = (userClickedGotIt: boolean) => {
     // Determine if they actually got it right based on their selected answer
     const actuallyGotItRight = selectedChoice === question.correctAnswer;
+    
+    // Trigger confetti if they clicked "I got it" and actually got it right
+    if (userClickedGotIt && actuallyGotItRight) {
+      triggerConfetti();
+    }
     
     // Reset state for next question
     setSelectedChoice(null);
