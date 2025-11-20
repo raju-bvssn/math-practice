@@ -1,0 +1,80 @@
+---
+alwaysApply: true
+---
+
+# Architecture & Code Organization Rules
+
+## State Management
+- **ALWAYS** use the centralized `UserDataContext` for global state (stats, settings, missed questions)
+- **LOCAL state only** for component-specific UI state (current question, animations, modals)
+- **NEVER** duplicate state between context and local state
+- Settings must persist to localStorage automatically via the context
+- Use `useState` for local UI state, context for shared/persisted state
+
+## Constants & Configuration
+- **ALL** magic numbers must be extracted to `src/constants/index.ts`
+- Group constants by category (timing, UI, difficulty ranges, etc.)
+- Use `as const` for type-safe constant objects
+- Document the purpose of each constant with JSDoc comments
+- Examples: animation delays, min/max values, color schemes
+
+## Component Structure
+- **Screen components** go in `src/screens/` with co-located CSS
+- **Reusable components** go in `src/components/[ComponentName]/` with co-located CSS
+- **Utilities** go in `src/utils/` (pure functions only, no side effects)
+- **Business logic** goes in `src/lib/` (question generation, algorithms)
+- **Types** centralized in `src/types.ts`
+- **Constants** centralized in `src/constants/index.ts`
+
+## File Organization Pattern
+```
+src/
+  screens/
+    HomeScreen.tsx
+    HomeScreen.css
+  components/
+    QuestionCard/
+      QuestionCard.tsx
+      QuestionCard.css
+  utils/
+    stats.ts        # Pure utility functions
+    confetti.ts     # Feature-specific utilities
+  lib/
+    questionGenerator.ts  # Core business logic
+    persistence.ts        # localStorage wrapper
+  contexts/
+    UserDataContext.tsx   # Global state management
+```
+
+## Import Organization
+1. React imports first
+2. Third-party library imports
+3. Internal type imports
+4. Internal component imports
+5. Internal utility/lib imports
+6. Constants imports
+7. CSS imports last
+
+## Naming Conventions
+- **Components**: PascalCase (e.g., `QuestionCard`, `HomeScreen`)
+- **Files**: Match component name (e.g., `QuestionCard.tsx`)
+- **Functions**: camelCase (e.g., `calculateAccuracy`, `handleSubmit`)
+- **Constants**: SCREAMING_SNAKE_CASE (e.g., `CARD_ANIMATION_DELAY_MS`)
+- **Interfaces/Types**: PascalCase (e.g., `Question`, `UserData`)
+- **CSS classes**: kebab-case (e.g., `question-card`, `choice-button`)
+
+## TypeScript Standards
+- **NO `any` types** - use proper typing or `unknown` if needed
+- **ALWAYS** define interfaces for props, state, and data structures
+- **USE** type guards for runtime type checking when needed
+- Import types from `src/types.ts` for consistency
+- Prefer interfaces over types for object shapes
+- Use `readonly` for immutable data structures
+
+## Clean Code Principles
+- **Single Responsibility**: Each function should do one thing well (max ~50 lines)
+- **DRY**: Extract repeated logic into utility functions
+- **Pure Functions**: Utilities should be stateless and side-effect free
+- **Immutability**: Never mutate state directly, always create new objects/arrays
+- **Descriptive Naming**: Names should reveal intent (no cryptic abbreviations)
+- **Early Returns**: Validate inputs early, return/throw immediately on error

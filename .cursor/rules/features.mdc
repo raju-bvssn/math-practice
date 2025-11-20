@@ -1,0 +1,169 @@
+---
+alwaysApply: true
+---
+
+# Feature-Specific Development Rules
+
+## Question Generation Algorithm
+
+### Operand Ranges
+- **MUST** respect difficulty level constants from `src/constants/index.ts`
+- **NO negative numbers** in results (kid-friendly math only)
+- **DIVISION** must result in whole numbers (no decimals/remainders)
+- **MULTIPLICATION (hard)**: Use one large factor (10-99) × one small factor (0-12)
+
+### Distractor Generation (Wrong Answers)
+- **PLAUSIBLE distractors**: Based on common student errors
+- **Operation-specific mistakes**:
+  - Addition: Near misses (±1), wrong operation (multiply instead)
+  - Subtraction: Reversed operands (b-a instead of a-b), near misses
+  - Multiplication: Off-by-one factor errors
+  - Division: Off-by-one or off-by-two quotients
+- **Difficulty-scaled offsets**: Larger offsets for harder questions
+- **NO duplicates**: All 4 choices must be unique numbers
+- **NO negative distractors**: Keep all choices ≥ 0
+
+### Question Shuffling
+- **ALWAYS** shuffle answer choices (use Fisher-Yates algorithm)
+- Correct answer should appear in random position
+- Prevents pattern recognition or position bias
+
+## Answer Tracking & Correctness
+
+### The Golden Rule
+**ACTUAL correctness** is determined by comparing `selectedChoice` with `correctAnswer`.
+**NEVER** trust user self-reporting ("I got it" / "I missed it" buttons).
+
+### Tracking Logic
+```typescript
+// ✅ CORRECT - Track based on actual selection
+const actuallyCorrect = selectedChoice === question.correctAnswer;
+recordAttempt(question, actuallyCorrect);
+
+// ❌ WRONG - Don't trust user button clicks
+const userSaidCorrect = userClickedGotItButton;
+recordAttempt(question, userSaidCorrect); // NO!
+```
+
+### Missed Questions
+- Automatically added to review list when answered incorrectly
+- Track `missedCount` and `lastMissedAt` timestamp
+- Removed from review list when answered correctly
+- Sorted by: highest `missedCount` first, then oldest `lastMissedAt`
+
+## Session Management
+
+### Fixed-Length Sessions
+- User selects number of questions (1-50)
+- Generate all questions upfront
+- Progress: "Question 3 of 10"
+- Complete when all questions answered
+
+### Continuous Mode
+- `sessionLength === 0`
+- Generate one question at a time
+- No end to session (user must manually end)
+- Progress: "Continuous Mode • Question 23"
+
+### Session Statistics
+- Track: `correct`, `total` for current session
+- Calculate accuracy: `Math.round((correct / total) * 100)`
+- Use utility functions from `src/utils/stats.ts`
+- Display at session completion
+
+## Review System
+
+### Purpose
+Help students master questions they previously missed through spaced repetition.
+
+### Sorting Strategy
+1. **Primary**: Questions missed most frequently (highest `missedCount`)
+2. **Secondary**: Questions missed longest ago (oldest `lastMissedAt`)
+
+Rationale: Focus on weakest areas first, with oldest for better retention.
+
+### Removal Logic
+- Question removed ONLY when answered correctly in review
+- Not removed if answered incorrectly (stays in review list)
+- `clearMissedQuestion(id)` called immediately on correct answer
+
+### Empty State
+When no missed questions: Show encouraging message ("Great Job! You don't have any missed questions to review").
+
+## Statistics & Progress
+
+### Global Statistics (Persisted)
+- `totalAttempted`, `totalCorrect`, `totalIncorrect`
+- Per-operation stats: `{ attempted, correct }` for each operation
+- History log: Array of attempts with timestamp, operation, result
+- All stored in `UserDataContext` and auto-saved to localStorage
+
+### Calculation Functions
+Use centralized utilities from `src/utils/stats.ts`:
+- `calculateAccuracy(correct, total)` - Returns percentage
+- `updateSessionStats(current, wasCorrect)` - Immutable updates
+- `createInitialSessionStats()` - Factory for { correct: 0, total: 0 }
+- `formatCount(count, singular, plural)` - Smart pluralization
+
+### Display Format
+- Accuracy: "85%" (rounded to integer)
+- Counts: "7 questions" vs "1 question" (proper pluralization)
+- Progress: "Session Progress: 7/10 correct"
+
+## Settings & Persistence
+
+### User Settings
+- `operations`: Array of selected operations (can be multiple)
+- `difficulty`: 'easy' | 'medium' | 'hard'
+- `sessionLength`: 0-50 (0 = continuous)
+
+### Persistence Strategy
+- Settings saved to localStorage via `UserDataContext`
+- Auto-save on every change (useEffect in context)
+- Load on app initialization
+- Use wrapper functions from `src/lib/persistence.ts`
+
+### Validation
+- At least one operation must be selected before starting practice
+- Session length clamped between `MIN_SESSION_LENGTH` and `MAX_SESSION_LENGTH`
+- Difficulty must be one of: 'easy', 'medium', 'hard'
+
+## Confetti Celebration
+
+### Trigger Timing
+- **Immediately** when correct answer is selected
+- NOT when "I got it" button is clicked
+- Only on actual correct answers (verified by comparison)
+
+### Accessibility
+- **MUST** check `prefers-reduced-motion` before firing
+- Skip animation entirely if user prefers reduced motion
+- No console logs or errors when skipped
+
+### Implementation
+- Use utility function: `triggerCelebrationConfetti()` from `src/utils/confetti.ts`
+- Multi-burst effect (5 bursts with varying angles/speeds)
+- Z-index 9999 to appear above all content
+- Origin at y: 0.7 (lower-middle of screen)
+
+## Educational Principles
+
+### Learning-Focused Design
+- Questions build confidence (start easy, progress harder)
+- Mistakes are learning opportunities (review system)
+- Immediate feedback helps retention
+- Spaced repetition through missed questions review
+- Progress tracking motivates continued practice
+
+### Positive Reinforcement
+- Celebrate correct answers (confetti!)
+- Neutral response to incorrect answers (no punishment)
+- Encouraging messages throughout
+- Track progress to show improvement over time
+
+### Data Privacy
+- ALL data stored locally (localStorage only)
+- NO external analytics or tracking
+- NO network requests except initial load
+- Parents can trust the app with their child's data
+- No account/login required

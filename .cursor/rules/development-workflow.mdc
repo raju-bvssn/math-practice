@@ -1,0 +1,210 @@
+---
+alwaysApply: true
+---
+
+# Development Workflow & Standards
+
+## Pre-Commit Checklist (REQUIRED)
+Before committing ANY code changes:
+
+1. ✅ **Build Success**: Run `npm run build` - must complete without errors
+2. ✅ **All Tests Pass**: Run `npm run test:e2e` - 22 tests must pass (1 skipped is OK)
+3. ✅ **No Console Errors**: Check browser console for errors/warnings
+4. ✅ **Responsive Check**: Test on mobile viewport (375px width minimum)
+5. ✅ **Accessibility Check**: Test with keyboard navigation and reduced motion
+
+## Testing Standards
+
+### E2E Testing with Playwright
+- **ALL** new features must have E2E test coverage
+- **NEVER** skip failing tests - either fix them or document with TODO
+- Tests must verify actual behavior, not implementation details
+
+### Test Best Practices
+- **aria-label for values**: Use `getAttribute('aria-label')` to extract choice values
+  - ❌ DON'T use `textContent` (includes keyboard hints)
+  - ✅ DO parse aria-label: `"Answer choice 1: 43. Press 1..."`
+- **Wait for animations**: Use `waitForTimeout(700)` after card flips
+- **Clean state**: Clear localStorage in `beforeEach` for predictable tests
+- **Test both paths**: Happy path AND error states
+- **Specific selectors**: Use class names (`.review-progress`) to avoid strict mode violations
+
+### Test Maintenance
+- Update tests when UI text changes
+- Keep test data synchronized with app defaults
+- Use constants in tests for timeouts and delays
+- Document complex test scenarios
+
+## Git Workflow
+
+### Branch Strategy
+- **main**: Production-ready code only
+- **feature/***: All development work
+- **NEVER** commit directly to main - always use PRs
+
+### Commit Message Format
+Use conventional commits with emoji prefixes:
+```
+<emoji> <type>: <subject>
+
+<body (optional)>
+
+<footer (optional)>
+```
+
+**Examples:**
+- `✨ feat: Add confetti animation for correct answers`
+- `🐛 fix: Correct button text parsing in E2E tests`
+- `♻️ refactor: Extract session stats to utility functions`
+- `✅ test: Add E2E tests for review screen`
+- `📝 docs: Update architecture documentation`
+- `🎨 style: Improve button hover animations`
+
+**Emoji Guide:**
+- ✨ feat: New feature
+- 🐛 fix: Bug fix
+- ♻️ refactor: Code refactoring
+- ✅ test: Adding/updating tests
+- 📝 docs: Documentation
+- 🎨 style: UI/styling changes
+- ⚡ perf: Performance improvement
+- 🔧 chore: Build/tooling changes
+
+### Commit Body Guidelines
+- Explain WHY, not just WHAT
+- Reference related issues/features
+- List breaking changes (if any)
+- Include test results summary
+
+## Code Review Checklist
+
+### Before Creating PR
+- [ ] All tests passing
+- [ ] No linter errors
+- [ ] Comments added for complex logic
+- [ ] Constants extracted (no magic numbers)
+- [ ] Accessibility attributes present
+- [ ] Responsive design tested
+- [ ] Performance acceptable
+
+### PR Description Must Include
+1. What changed and why
+2. Test results (screenshot of test report)
+3. Before/after screenshots (for UI changes)
+4. Breaking changes (if any)
+5. Testing notes for reviewer
+
+## Performance Guidelines
+
+### Animation Timing
+- Use `CARD_ANIMATION_DELAY_MS` constant from `src/constants/`
+- Card flip: 700ms standard duration
+- Button transitions: 200-300ms
+- `setTimeout` delays must align with CSS animation durations
+
+### Bundle Size
+- Keep total bundle under 250KB (gzipped)
+- Check impact before adding new dependencies
+- Use dynamic imports for large optional features
+- Tree-shake unused code
+
+### State Update Optimization
+- Batch related state updates when possible
+- Use functional setState for dependent updates
+- Avoid unnecessary re-renders
+- Memoize expensive calculations (use useMemo/useCallback when needed)
+
+## Dependency Management
+
+### Adding New Dependencies
+Before adding ANY new dependency:
+1. **Check necessity**: Can we implement it ourselves?
+2. **Check size**: How much will it add to bundle?
+3. **Check maintenance**: Is it actively maintained?
+4. **Check TypeScript**: Are types available?
+5. **Document reason**: Why is this dependency needed?
+
+### Updating Dependencies
+- Review changelog before updating
+- Test thoroughly after major version updates
+- Update TypeScript types (@types packages)
+- Document breaking changes
+
+### Current Stack (DO NOT CHANGE without discussion)
+- **React 18+**: Hooks only, no class components
+- **TypeScript**: Strict mode enabled
+- **React Router v6**: For navigation
+- **Canvas-confetti**: For celebration effects
+- **Playwright**: For E2E testing
+- **Vite**: For build tooling
+
+## Error Handling
+
+### User-Facing Errors
+- Use simple, clear language (kid-friendly)
+- Provide recovery action (button to retry/go back)
+- NO technical jargon or stack traces
+- Example: "Oops! Something went wrong. Let's go back home."
+
+### Developer Errors
+- Log to console with context
+- Throw descriptive errors from utility functions
+- Use type guards to catch issues early
+- Validate inputs at function boundaries
+
+### Edge Cases to Handle
+- localStorage quota exceeded
+- localStorage disabled
+- No operations selected
+- Division by zero
+- Invalid session length input
+- Rapid button clicking (debounce if needed)
+
+## Documentation Requirements
+
+### Code Documentation
+- JSDoc for all exported functions
+- Header comments for all components
+- Inline comments for complex logic
+- README updates for new features
+
+### User Documentation
+- Keep FEATURES.md updated
+- Update TODO.md as features complete
+- Screenshot examples for UI features
+- Clear setup instructions in README
+
+## Anti-Patterns (NEVER DO THIS)
+
+❌ **State Management**
+- Don't use localStorage directly (use persistence utilities)
+- Don't duplicate state between context and local
+- Don't modify state directly (always immutable updates)
+
+❌ **Code Organization**
+- Don't hardcode colors, sizes, timings (use constants)
+- Don't create functions longer than ~50 lines
+- Don't use inline styles (except dynamic theme colors)
+- Don't put business logic in components
+
+❌ **TypeScript**
+- Don't use `any` type
+- Don't ignore TypeScript errors
+- Don't skip type definitions for props/state
+
+❌ **Testing**
+- Don't skip failing tests
+- Don't test implementation details
+- Don't commit commented-out test code
+
+❌ **UI/UX**
+- Don't skip accessibility attributes
+- Don't ignore mobile viewport
+- Don't create inaccessible color contrasts
+- Don't forget prefers-reduced-motion
+
+❌ **Git**
+- Don't commit to main directly
+- Don't commit console.logs
+- Don't commit commented-out code
+- Don't force push to main/master
