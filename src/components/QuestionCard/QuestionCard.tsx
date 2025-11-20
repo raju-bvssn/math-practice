@@ -12,7 +12,7 @@
 import { useState, useEffect } from 'react';
 import { Question } from '../../types';
 import { triggerCelebrationConfetti } from '../../utils/confetti';
-import { playSuccessSound } from '../../utils/sound';
+import { playSuccessSound, playIncorrectSound } from '../../utils/sound';
 import { ANSWER_KEYS, DIFFICULTY_COLORS, OPERATION_ICONS } from '../../constants';
 import './QuestionCard.css';
 
@@ -66,10 +66,14 @@ function QuestionCard({ question, onResult, questionNumber, totalQuestions }: Qu
     setSelectedChoice(choice);
     setIsFlipped(true);
     
-    // Celebrate immediately if answer is correct!
+    // Provide immediate audio feedback based on correctness
     if (choice === question.correctAnswer) {
+      // Celebrate correct answer with confetti and success sound
       triggerCelebrationConfetti();
       playSuccessSound();
+    } else {
+      // Gentle audio notification for incorrect answer (non-punitive)
+      playIncorrectSound();
     }
   };
 

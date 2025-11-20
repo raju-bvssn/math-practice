@@ -138,6 +138,19 @@ export const SOUND_SUCCESS_NOTES = [
   1046.50, // C6
 ] as const;
 
+/**
+ * Musical notes for incorrect answer sound (gentle descending tones)
+ * Frequencies in Hz: E4, D4 (gentle, neutral notification)
+ * Intentionally subtle and non-punitive to maintain positive learning environment
+ */
+export const SOUND_INCORRECT_NOTES = [
+  329.63, // E4
+  293.66, // D4
+] as const;
+
+/** Duration of incorrect answer sound notes (shorter and gentler than success) */
+export const SOUND_INCORRECT_NOTE_DURATION_MS = 120;
+
 // ============================================================================
 // UI THEME CONSTANTS
 // ============================================================================

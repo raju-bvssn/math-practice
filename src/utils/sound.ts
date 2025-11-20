@@ -6,8 +6,10 @@
 import {
   SOUND_ENABLED_DEFAULT,
   SOUND_SUCCESS_NOTES,
+  SOUND_INCORRECT_NOTES,
   SOUND_VOLUME,
   SOUND_NOTE_DURATION_MS,
+  SOUND_INCORRECT_NOTE_DURATION_MS,
 } from '../constants';
 
 /**
@@ -98,6 +100,47 @@ export function playSuccessSound(): void {
   } catch (error) {
     // Fail silently if Web Audio API is not supported
     // This ensures the app still works on older browsers
+    console.warn('Web Audio API not supported:', error);
+  }
+}
+
+/**
+ * Plays a gentle notification sound for incorrect answers
+ * Uses descending tones to indicate an incorrect response
+ * Intentionally subtle and non-punitive to maintain positive learning environment
+ * 
+ * Features:
+ * - Respects user sound preferences
+ * - Respects prefers-reduced-motion accessibility setting
+ * - Uses gentle descending tones (not harsh or negative)
+ * - Shorter and softer than success sound
+ * - Educational principle: mistakes are learning opportunities, not failures
+ */
+export function playIncorrectSound(): void {
+  // Skip sound if user preferences indicate it shouldn't play
+  if (!shouldPlaySound()) {
+    return;
+  }
+  
+  try {
+    // Create audio context (Web Audio API)
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    
+    // Play gentle descending notes with slight delay between each
+    // This creates a neutral, non-punitive notification
+    SOUND_INCORRECT_NOTES.forEach((frequency, index) => {
+      setTimeout(() => {
+        playNote(frequency, SOUND_INCORRECT_NOTE_DURATION_MS, audioContext);
+      }, index * 100); // 100ms delay between notes for a gentle descending tone
+    });
+    
+    // Clean up audio context after all notes finish
+    setTimeout(() => {
+      audioContext.close();
+    }, SOUND_INCORRECT_NOTES.length * 100 + SOUND_INCORRECT_NOTE_DURATION_MS);
+    
+  } catch (error) {
+    // Fail silently if Web Audio API is not supported
     console.warn('Web Audio API not supported:', error);
   }
 }
