@@ -1,0 +1,99 @@
+---
+alwaysApply: true
+---
+
+# UI/UX Guidelines (Kid-Friendly Design)
+
+## Visual Design Principles
+- **ALWAYS** use gradients and playful colors for engagement
+- **LARGE** touch-friendly buttons (minimum 44px × 44px)
+- **ROUNDED** corners on all interactive elements (border-radius: 12px+)
+- **ANIMATED** transitions for engagement (but respect prefers-reduced-motion)
+- **EMOJI** for visual feedback and fun (🎉, ✓, ✗, ⚠️, 🎓, etc.)
+- **CONSISTENT** color scheme across the application
+
+## Color Guidelines
+- **Difficulty colors**: Easy (green #4caf50), Medium (orange #ff9800), Hard (red #f44336)
+- **Gradients**: Use vibrant gradients (e.g., purple to pink, blue to purple)
+- **Contrast**: All text must pass WCAG AA contrast requirements
+- **Feedback colors**: Green for correct, red for incorrect, yellow for caution
+
+## Typography
+- **Playful fonts**: Use rounded, friendly fonts (Comic Neue, Fredoka One, etc.)
+- **Large sizes**: Question text should be 3rem+, buttons 1.5rem+
+- **Readable hierarchy**: Clear distinction between headings, body, and buttons
+- **NO small text**: Minimum 14px for any text (kids need readability)
+
+## Layout & Spacing
+- **Generous padding**: Don't crowd elements (min 1rem between sections)
+- **Centered content**: Most content should be centered for focus
+- **Max width**: Use max-width (800-1200px) for readability on large screens
+- **Responsive**: Mobile-first design, works on tablets and phones
+- **NO scrolling on main screens**: Fit content to viewport (100vh considerations)
+
+## Accessibility (REQUIRED)
+- **ALL** interactive elements must have descriptive `aria-label` attributes
+- **KEYBOARD navigation** support:
+  - Tab/Shift+Tab to navigate between elements
+  - Enter/Space to activate buttons
+  - Number keys 1-4 for answer selection
+- **Visual key hints**: Show keyboard shortcuts on buttons (1, 2, 3, 4)
+- **Focus indicators**: Clear visible focus state on all interactive elements
+- **prefers-reduced-motion**: MUST respect this setting
+  ```css
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+  ```
+
+## Feedback & Engagement
+- **IMMEDIATE** visual feedback for all interactions:
+  - Correct answer → Confetti animation
+  - Wrong answer → No negative feedback (neutral)
+  - Button click → Visual press state
+  - Selection → Border/background highlight
+- **PROGRESS indicators** on all multi-step screens
+- **ENCOURAGING messaging**: Never negative, always growth-focused
+  - ✅ "Great Job!", "Keep Learning!", "You're doing amazing!"
+  - ❌ NOT: "Wrong!", "Fail", "Try Again" (too negative)
+
+## Animation Standards
+- **Card flip**: 700ms duration for question reveal
+- **Confetti**: Triggers immediately on correct answer selection
+- **Transitions**: 300ms for hover states, 200ms for focus states
+- **Page transitions**: Instant (no page transition animations)
+- **Button press**: Scale transform (0.95) for tactile feedback
+
+## Interactive Elements
+### Buttons
+- Large, rounded, with clear labels
+- Hover state: slight scale up (1.02) and brightness increase
+- Active state: scale down (0.95) for press effect
+- Disabled state: reduced opacity (0.5) and cursor: not-allowed
+
+### Answer Choices
+- Grid layout (2×2) for 4 choices
+- Equal size boxes for fairness
+- Selected state: Bold border + background color
+- Keyboard hint badge in corner (small, subtle)
+
+### Progress Indicators
+- Visual bar or fraction (e.g., "Question 3 of 10")
+- Session progress: "Session Progress: 7/10 correct"
+- Color-coded: Green for correct count
+
+## Mobile Considerations
+- **Touch targets**: Minimum 44×44px (Apple HIG)
+- **NO hover effects** on mobile (use :active instead)
+- **Large tap areas**: Generous padding on buttons
+- **Portrait-friendly**: Optimize for portrait orientation
+- **Safe areas**: Respect iPhone notch and Android status bar
+
+## Loading & Empty States
+- **Loading**: Show friendly message ("Loading questions...")
+- **Empty states**: Encouraging message with clear call-to-action
+- **Error states**: Simple, clear explanation with recovery option
+- **Success states**: Celebration (emoji, animation, encouraging text)
