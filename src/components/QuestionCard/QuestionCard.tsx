@@ -12,6 +12,7 @@
 import { useState, useEffect } from 'react';
 import { Question } from '../../types';
 import { triggerCelebrationConfetti } from '../../utils/confetti';
+import { playSuccessSound } from '../../utils/sound';
 import { ANSWER_KEYS, DIFFICULTY_COLORS, OPERATION_ICONS } from '../../constants';
 import './QuestionCard.css';
 
@@ -68,6 +69,7 @@ function QuestionCard({ question, onResult, questionNumber, totalQuestions }: Qu
     // Celebrate immediately if answer is correct!
     if (choice === question.correctAnswer) {
       triggerCelebrationConfetti();
+      playSuccessSound();
     }
   };
 
